@@ -1,4 +1,4 @@
-package nodemodulebom
+package gomodbom
 
 import (
 	"bytes"
@@ -31,10 +31,15 @@ func NewModuleBOM(executable Executable, logger scribe.Emitter) ModuleBOM {
 }
 
 func (m ModuleBOM) Generate(workingDir string) ([]packit.BOMEntry, error) {
-
 	buffer := bytes.NewBuffer(nil)
-	args := []string{"-o", "bom.json"}
-	m.logger.Subprocess("Running 'cyclonedx-bom %s'", strings.Join(args, " "))
+	args := []string{
+		"app",
+		"-json",
+		"-files",
+		"-licenses",
+		"-output", "bom.json",
+	}
+	m.logger.Subprocess("Running 'cyclonedx-gomod %s'", strings.Join(args, " "))
 	err := m.executable.Execute(pexec.Execution{
 		Args:   args,
 		Dir:    workingDir,
@@ -44,7 +49,7 @@ func (m ModuleBOM) Generate(workingDir string) ([]packit.BOMEntry, error) {
 
 	if err != nil {
 		m.logger.Detail(buffer.String())
-		return nil, fmt.Errorf("failed to run cyclonedx-bom: %w", err)
+		return nil, fmt.Errorf("failed to run cyclonedx-gomod: %w", err)
 	}
 
 	file, err := os.Open(filepath.Join(workingDir, "bom.json"))

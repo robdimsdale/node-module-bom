@@ -6,9 +6,9 @@ import (
 	"github.com/paketo-buildpacks/packit"
 )
 
-type NodeModuleBOM struct {
+type GoModBOM struct {
 	GenerateCall struct {
-		sync.Mutex
+		mutex     sync.Mutex
 		CallCount int
 		Receives  struct {
 			WorkingDir string
@@ -21,9 +21,9 @@ type NodeModuleBOM struct {
 	}
 }
 
-func (f *NodeModuleBOM) Generate(param1 string) ([]packit.BOMEntry, error) {
-	f.GenerateCall.Lock()
-	defer f.GenerateCall.Unlock()
+func (f *GoModBOM) Generate(param1 string) ([]packit.BOMEntry, error) {
+	f.GenerateCall.mutex.Lock()
+	defer f.GenerateCall.mutex.Unlock()
 	f.GenerateCall.CallCount++
 	f.GenerateCall.Receives.WorkingDir = param1
 	if f.GenerateCall.Stub != nil {

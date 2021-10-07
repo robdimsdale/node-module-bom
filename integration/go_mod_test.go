@@ -13,7 +13,7 @@ import (
 	. "github.com/paketo-buildpacks/occam/matchers"
 )
 
-func testNPM(t *testing.T, context spec.G, it spec.S) {
+func testGoMod(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect     = NewWithT(t).Expect
 		Eventually = NewWithT(t).Eventually
@@ -47,7 +47,7 @@ func testNPM(t *testing.T, context spec.G, it spec.S) {
 			Expect(os.RemoveAll(source)).To(Succeed())
 		})
 
-		context("building a basic npm app is pack built", func() {
+		context("building a basic go mod app is pack built", func() {
 			it.After(func() {
 				Expect(docker.Container.Remove.Execute(container.ID)).To(Succeed())
 			})
@@ -55,17 +55,17 @@ func testNPM(t *testing.T, context spec.G, it spec.S) {
 			it("builds, logs and runs correctly", func() {
 				var err error
 
-				source, err = occam.Source(filepath.Join("testdata", "npm_app"))
+				source, err = occam.Source(filepath.Join("testdata", "go_mod_app"))
 				Expect(err).ToNot(HaveOccurred())
 
 				var logs fmt.Stringer
 				image, logs, err = pack.WithNoColor().Build.
 					WithPullPolicy("never").
 					WithBuildpacks(
-						nodeEngineBuildpack,
-						npmInstallBuildpack,
-						nodeModuleBOMBuildpack,
-						npmStartBuildpack,
+						goDistBuildpack,
+						offlineGoModBOMBuildpack, // TODO: Use online buildpack here once we resolve the packaging issue of cyclonedx-gomod (it needs to have a bin directory)
+						// goModBOMBuildpack,
+						goBuildBuildpack,
 					).
 					Execute(name, source)
 				Expect(err).ToNot(HaveOccurred(), logs.String)
@@ -76,8 +76,8 @@ func testNPM(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(container).Should(BeAvailable())
-				Eventually(container).Should(Serve(ContainSubstring("hello world")).OnPort(8080))
-				Expect(image.Labels["io.buildpacks.build.metadata"]).To(ContainSubstring(`"name":"leftpad"`))
+				Eventually(container).Should(Serve(ContainSubstring("Random UUID")).OnPort(8080))
+				Expect(image.Labels["io.buildpacks.build.metadata"]).To(ContainSubstring(`"name":"github.com/google/uuid"`))
 			})
 		})
 	})

@@ -1,4 +1,4 @@
-package nodemodulebom_test
+package gomodbom_test
 
 import (
 	"bytes"
@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	nodemodulebom "github.com/paketo-buildpacks/node-module-bom"
-	"github.com/paketo-buildpacks/node-module-bom/fakes"
+	gomodbom "github.com/paketo-buildpacks/go-mod-bom"
+	"github.com/paketo-buildpacks/go-mod-bom/fakes"
 	"github.com/paketo-buildpacks/packit"
 	"github.com/paketo-buildpacks/packit/pexec"
 	"github.com/paketo-buildpacks/packit/scribe"
@@ -28,7 +28,7 @@ func testModuleBOM(t *testing.T, context spec.G, it spec.S) {
 		buffer        *bytes.Buffer
 		commandOutput *bytes.Buffer
 
-		moduleBOM nodemodulebom.ModuleBOM
+		moduleBOM gomodbom.ModuleBOM
 	)
 
 	it.Before(func() {
@@ -106,7 +106,7 @@ func testModuleBOM(t *testing.T, context spec.G, it spec.S) {
 		buffer = bytes.NewBuffer(nil)
 		commandOutput = bytes.NewBuffer(nil)
 
-		moduleBOM = nodemodulebom.NewModuleBOM(executable, scribe.NewEmitter(buffer))
+		moduleBOM = gomodbom.NewModuleBOM(executable, scribe.NewEmitter(buffer))
 	})
 
 	it.After(func() {
@@ -199,7 +199,7 @@ func testModuleBOM(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		context("failure cases", func() {
-			context("the cyclonedx-bom executable call fails", func() {
+			context("the cyclonedx-gomod executable call fails", func() {
 				it.Before(func() {
 					executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
 						fmt.Fprintln(execution.Stdout, "build error stdout")
@@ -209,7 +209,7 @@ func testModuleBOM(t *testing.T, context spec.G, it spec.S) {
 				})
 				it("returns an error", func() {
 					_, err := moduleBOM.Generate(workingDir)
-					Expect(err).To(MatchError("failed to run cyclonedx-bom: error"))
+					Expect(err).To(MatchError("failed to run cyclonedx-gomod: error"))
 
 					Expect(buffer.String()).To(ContainSubstring("        build error stdout"))
 					Expect(buffer.String()).To(ContainSubstring("        build error stderr"))
@@ -270,7 +270,7 @@ func testModuleBOM(t *testing.T, context spec.G, it spec.S) {
 					buffer = bytes.NewBuffer(nil)
 					commandOutput = bytes.NewBuffer(nil)
 
-					moduleBOM = nodemodulebom.NewModuleBOM(executable, scribe.NewEmitter(buffer))
+					moduleBOM = gomodbom.NewModuleBOM(executable, scribe.NewEmitter(buffer))
 				})
 
 				it.After(func() {

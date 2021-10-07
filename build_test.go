@@ -1,4 +1,4 @@
-package nodemodulebom_test
+package gomodbom_test
 
 import (
 	"bytes"
@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	nodemodulebom "github.com/paketo-buildpacks/node-module-bom"
-	"github.com/paketo-buildpacks/node-module-bom/fakes"
+	gomodbom "github.com/paketo-buildpacks/go-mod-bom"
+	"github.com/paketo-buildpacks/go-mod-bom/fakes"
 	"github.com/paketo-buildpacks/packit"
 	"github.com/paketo-buildpacks/packit/chronos"
 	"github.com/paketo-buildpacks/packit/postal"
@@ -29,7 +29,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		workingDir        string
 		timestamp         time.Time
 		dependencyManager *fakes.DependencyManager
-		nodeModuleBOM     *fakes.NodeModuleBOM
+		goModBOM          *fakes.GoModBOM
 		buffer            *bytes.Buffer
 
 		build packit.BuildFunc
@@ -56,30 +56,30 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		dependencyManager = &fakes.DependencyManager{}
 		dependencyManager.ResolveCall.Returns.Dependency = postal.Dependency{
-			ID:      "cyclonedx-node-module",
-			Name:    "cyclonedx-node-module-dependency-name",
-			SHA256:  "cyclonedx-node-module-dependency-sha",
+			ID:      "cyclonedx-gomod",
+			Name:    "cyclonedx-gomod-dependency-name",
+			SHA256:  "cyclonedx-gomod-dependency-sha",
 			Stacks:  []string{"some-stack"},
-			URI:     "cyclonedx-node-module-dependency-uri",
-			Version: "cyclonedx-node-module-dependency-version",
+			URI:     "cyclonedx-gomod-dependency-uri",
+			Version: "cyclonedx-gomod-dependency-version",
 		}
 
 		dependencyManager.GenerateBillOfMaterialsCall.Returns.BOMEntrySlice = []packit.BOMEntry{
 			{
-				Name: "cyclonedx-node-module",
+				Name: "cyclonedx-gomod",
 				Metadata: packit.BOMMetadata{
-					Version: "cyclonedx-node-module-dependency-version",
+					Version: "cyclonedx-gomod-dependency-version",
 					Checksum: packit.BOMChecksum{
 						Algorithm: algorithm,
-						Hash:      "cyclonedx-node-module-dependency-sha",
+						Hash:      "cyclonedx-gomod-dependency-sha",
 					},
-					URI: "cyclonedx-node-module-dependency-uri",
+					URI: "cyclonedx-gomod-dependency-uri",
 				},
 			},
 		}
 
-		nodeModuleBOM = &fakes.NodeModuleBOM{}
-		nodeModuleBOM.GenerateCall.Returns.BOMEntrySlice = []packit.BOMEntry{
+		goModBOM = &fakes.GoModBOM{}
+		goModBOM.GenerateCall.Returns.BOMEntrySlice = []packit.BOMEntry{
 			{
 				Name: "leftpad",
 				Metadata: packit.BOMMetadata{
@@ -96,7 +96,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		buffer = bytes.NewBuffer(nil)
 		logEmitter := scribe.NewEmitter(buffer)
 
-		build = nodemodulebom.Build(dependencyManager, nodeModuleBOM, clock, logEmitter)
+		build = gomodbom.Build(dependencyManager, goModBOM, clock, logEmitter)
 	})
 
 	it.After(func() {
@@ -105,7 +105,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		Expect(os.RemoveAll(workingDir)).To(Succeed())
 	})
 
-	it("returns a result that installs cyclonedx-node-module", func() {
+	it("returns a result that installs cyclonedx-gomod", func() {
 		result, err := build(packit.BuildContext{
 			BuildpackInfo: packit.BuildpackInfo{
 				Name:    "Some Buildpack",
@@ -125,8 +125,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		Expect(result).To(Equal(packit.BuildResult{
 			Layers: []packit.Layer{
 				{
-					Name:             "cyclonedx-node-module",
-					Path:             filepath.Join(layersDir, "cyclonedx-node-module"),
+					Name:             "cyclonedx-gomod",
+					Path:             filepath.Join(layersDir, "cyclonedx-gomod"),
 					SharedEnv:        packit.Environment{},
 					BuildEnv:         packit.Environment{},
 					LaunchEnv:        packit.Environment{},
@@ -135,7 +135,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Launch:           false,
 					Cache:            true,
 					Metadata: map[string]interface{}{
-						"dependency-sha": "cyclonedx-node-module-dependency-sha",
+						"dependency-sha": "cyclonedx-gomod-dependency-sha",
 						"built_at":       timestamp.Format(time.RFC3339Nano),
 					},
 				},
@@ -143,14 +143,14 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Build: packit.BuildMetadata{
 				BOM: []packit.BOMEntry{
 					{
-						Name: "cyclonedx-node-module",
+						Name: "cyclonedx-gomod",
 						Metadata: packit.BOMMetadata{
-							Version: "cyclonedx-node-module-dependency-version",
+							Version: "cyclonedx-gomod-dependency-version",
 							Checksum: packit.BOMChecksum{
 								Algorithm: algorithm,
-								Hash:      "cyclonedx-node-module-dependency-sha",
+								Hash:      "cyclonedx-gomod-dependency-sha",
 							},
-							URI: "cyclonedx-node-module-dependency-uri",
+							URI: "cyclonedx-gomod-dependency-uri",
 						},
 					},
 					{
@@ -184,51 +184,51 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		}))
 
 		Expect(dependencyManager.ResolveCall.Receives.Path).To(Equal(filepath.Join(cnbDir, "buildpack.toml")))
-		Expect(dependencyManager.ResolveCall.Receives.Id).To(Equal("cyclonedx-node-module"))
+		Expect(dependencyManager.ResolveCall.Receives.Id).To(Equal("cyclonedx-gomod"))
 		Expect(dependencyManager.ResolveCall.Receives.Version).To(Equal("*"))
 		Expect(dependencyManager.ResolveCall.Receives.Stack).To(Equal("some-stack"))
 
 		Expect(dependencyManager.DeliverCall.Receives.Dependency).To(Equal(postal.Dependency{
-			ID:      "cyclonedx-node-module",
-			Name:    "cyclonedx-node-module-dependency-name",
-			SHA256:  "cyclonedx-node-module-dependency-sha",
+			ID:      "cyclonedx-gomod",
+			Name:    "cyclonedx-gomod-dependency-name",
+			SHA256:  "cyclonedx-gomod-dependency-sha",
 			Stacks:  []string{"some-stack"},
-			URI:     "cyclonedx-node-module-dependency-uri",
-			Version: "cyclonedx-node-module-dependency-version",
+			URI:     "cyclonedx-gomod-dependency-uri",
+			Version: "cyclonedx-gomod-dependency-version",
 		}))
 		Expect(dependencyManager.DeliverCall.Receives.CnbPath).To(Equal(cnbDir))
-		Expect(dependencyManager.DeliverCall.Receives.LayerPath).To(Equal(filepath.Join(layersDir, "cyclonedx-node-module")))
+		Expect(dependencyManager.DeliverCall.Receives.LayerPath).To(Equal(filepath.Join(layersDir, "cyclonedx-gomod")))
 		Expect(dependencyManager.DeliverCall.Receives.PlatformPath).To(Equal("platform"))
 
 		Expect(dependencyManager.GenerateBillOfMaterialsCall.Receives.Dependencies).To(Equal([]postal.Dependency{
 			{
-				ID:      "cyclonedx-node-module",
-				Name:    "cyclonedx-node-module-dependency-name",
-				SHA256:  "cyclonedx-node-module-dependency-sha",
+				ID:      "cyclonedx-gomod",
+				Name:    "cyclonedx-gomod-dependency-name",
+				SHA256:  "cyclonedx-gomod-dependency-sha",
 				Stacks:  []string{"some-stack"},
-				URI:     "cyclonedx-node-module-dependency-uri",
-				Version: "cyclonedx-node-module-dependency-version",
+				URI:     "cyclonedx-gomod-dependency-uri",
+				Version: "cyclonedx-gomod-dependency-version",
 			},
 		}))
 
-		Expect(nodeModuleBOM.GenerateCall.Receives.WorkingDir).To(Equal(workingDir))
+		Expect(goModBOM.GenerateCall.Receives.WorkingDir).To(Equal(workingDir))
 	})
 
 	context("when there is a dependency cache match to reuse", func() {
 		it.Before(func() {
-			err := ioutil.WriteFile(filepath.Join(layersDir, "cyclonedx-node-module.toml"), []byte(`
+			err := ioutil.WriteFile(filepath.Join(layersDir, "cyclonedx-gomod.toml"), []byte(`
 			[metadata]
-			dependency-sha = "cyclonedx-node-module-dependency-sha"
+			dependency-sha = "cyclonedx-gomod-dependency-sha"
 			`), 0644)
 			Expect(err).NotTo(HaveOccurred())
 
 			dependencyManager.ResolveCall.Returns.Dependency = postal.Dependency{
-				ID:      "cyclonedx-node-module",
-				Name:    "cyclonedx-node-module-dependency-name",
-				SHA256:  "cyclonedx-node-module-dependency-sha",
+				ID:      "cyclonedx-gomod",
+				Name:    "cyclonedx-gomod-dependency-name",
+				SHA256:  "cyclonedx-gomod-dependency-sha",
 				Stacks:  []string{"some-stack"},
-				URI:     "cyclonedx-node-module-dependency-uri",
-				Version: "cyclonedx-node-module-dependency-version",
+				URI:     "cyclonedx-gomod-dependency-uri",
+				Version: "cyclonedx-gomod-dependency-version",
 			}
 		})
 
@@ -252,8 +252,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(result).To(Equal(packit.BuildResult{
 				Layers: []packit.Layer{
 					{
-						Name:             "cyclonedx-node-module",
-						Path:             filepath.Join(layersDir, "cyclonedx-node-module"),
+						Name:             "cyclonedx-gomod",
+						Path:             filepath.Join(layersDir, "cyclonedx-gomod"),
 						SharedEnv:        packit.Environment{},
 						BuildEnv:         packit.Environment{},
 						LaunchEnv:        packit.Environment{},
@@ -262,21 +262,21 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						Launch:           false,
 						Cache:            true,
 						Metadata: map[string]interface{}{
-							"dependency-sha": "cyclonedx-node-module-dependency-sha",
+							"dependency-sha": "cyclonedx-gomod-dependency-sha",
 						},
 					},
 				},
 				Build: packit.BuildMetadata{
 					BOM: []packit.BOMEntry{
 						{
-							Name: "cyclonedx-node-module",
+							Name: "cyclonedx-gomod",
 							Metadata: packit.BOMMetadata{
-								Version: "cyclonedx-node-module-dependency-version",
+								Version: "cyclonedx-gomod-dependency-version",
 								Checksum: packit.BOMChecksum{
 									Algorithm: algorithm,
-									Hash:      "cyclonedx-node-module-dependency-sha",
+									Hash:      "cyclonedx-gomod-dependency-sha",
 								},
-								URI: "cyclonedx-node-module-dependency-uri",
+								URI: "cyclonedx-gomod-dependency-uri",
 							},
 						},
 						{
@@ -312,15 +312,15 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(dependencyManager.DeliverCall.CallCount).To(Equal(0))
 			Expect(dependencyManager.GenerateBillOfMaterialsCall.Receives.Dependencies).To(Equal([]postal.Dependency{
 				{
-					ID:      "cyclonedx-node-module",
-					Name:    "cyclonedx-node-module-dependency-name",
-					SHA256:  "cyclonedx-node-module-dependency-sha",
+					ID:      "cyclonedx-gomod",
+					Name:    "cyclonedx-gomod-dependency-name",
+					SHA256:  "cyclonedx-gomod-dependency-sha",
 					Stacks:  []string{"some-stack"},
-					URI:     "cyclonedx-node-module-dependency-uri",
-					Version: "cyclonedx-node-module-dependency-version",
+					URI:     "cyclonedx-gomod-dependency-uri",
+					Version: "cyclonedx-gomod-dependency-version",
 				},
 			}))
-			Expect(nodeModuleBOM.GenerateCall.Receives.WorkingDir).To(Equal(workingDir))
+			Expect(goModBOM.GenerateCall.Receives.WorkingDir).To(Equal(workingDir))
 
 			Expect(buffer.String()).To(ContainSubstring("Reusing cached layer"))
 			Expect(buffer.String()).ToNot(ContainSubstring("Executing build process"))
@@ -344,9 +344,9 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
-		context("when the cyclonedx-node-module layer cannot be retrieved", func() {
+		context("when the cyclonedx-gomod layer cannot be retrieved", func() {
 			it.Before(func() {
-				err := os.WriteFile(filepath.Join(layersDir, "cyclonedx-node-module.toml"), nil, 0000)
+				err := os.WriteFile(filepath.Join(layersDir, "cyclonedx-gomod.toml"), nil, 0000)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -362,14 +362,14 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
-		context("when the cyclonedx-node-module layer cannot be reset", func() {
+		context("when the cyclonedx-gomod layer cannot be reset", func() {
 			it.Before(func() {
-				Expect(os.MkdirAll(filepath.Join(layersDir, "cyclonedx-node-module", "something"), os.ModePerm)).To(Succeed())
-				Expect(os.Chmod(filepath.Join(layersDir, "cyclonedx-node-module"), 0500)).To(Succeed())
+				Expect(os.MkdirAll(filepath.Join(layersDir, "cyclonedx-gomod", "something"), os.ModePerm)).To(Succeed())
+				Expect(os.Chmod(filepath.Join(layersDir, "cyclonedx-gomod"), 0500)).To(Succeed())
 			})
 
 			it.After(func() {
-				Expect(os.Chmod(filepath.Join(layersDir, "cyclonedx-node-module"), os.ModePerm)).To(Succeed())
+				Expect(os.Chmod(filepath.Join(layersDir, "cyclonedx-gomod"), os.ModePerm)).To(Succeed())
 			})
 
 			it("returns an error", func() {
@@ -401,9 +401,9 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
-		context("when the node module BOM cannot be generated", func() {
+		context("when the go mod BOM cannot be generated", func() {
 			it.Before(func() {
-				nodeModuleBOM.GenerateCall.Returns.Error = errors.New("failed to generate node module BOM")
+				goModBOM.GenerateCall.Returns.Error = errors.New("failed to generate go mod BOM")
 			})
 
 			it("returns an error", func() {
@@ -414,7 +414,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Stack:      "some-stack",
 					WorkingDir: workingDir,
 				})
-				Expect(err).To(MatchError(ContainSubstring("failed to generate node module BOM")))
+				Expect(err).To(MatchError(ContainSubstring("failed to generate go mod BOM")))
 			})
 		})
 	})

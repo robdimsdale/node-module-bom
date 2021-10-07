@@ -16,17 +16,13 @@ import (
 )
 
 var (
-	nodeModuleBOMBuildpack        string
-	offlineNodeModuleBOMBuildpack string
-	nodeEngineBuildpack           string
-	offlineNodeEngineBuildpack    string
-	npmInstallBuildpack           string
-	yarnBuildpack                 string
-	yarnInstallBuildpack          string
-	nodeStartBuildpack            string
-	npmStartBuildpack             string
-	yarnStartBuildpack            string
-	root                          string
+	goModBOMBuildpack        string
+	offlineGoModBOMBuildpack string
+	goDistBuildpack          string
+	offlineGoDistBuildpack   string
+	goBuildBuildpack         string
+
+	root string
 
 	config struct {
 		Buildpack struct {
@@ -36,15 +32,8 @@ var (
 	}
 
 	integrationjson struct {
-		NodeEngine string `json:"node-engine"`
-		NodeStart  string `json:"node-start"`
-
-		NPMInstall string `json:"npm-install"`
-		NPMStart   string `json:"npm-start"`
-
-		Yarn        string `json:"yarn"`
-		YarnInstall string `json:"yarn-install"`
-		YarnStart   string `json:"yarn-start"`
+		GoDist  string `json:"go-dist"`
+		GoBuild string `json:"go-build"`
 	}
 )
 
@@ -70,57 +59,36 @@ func TestIntegration(t *testing.T) {
 
 	buildpackStore := occam.NewBuildpackStore()
 
-	nodeModuleBOMBuildpack, err = buildpackStore.Get.
-		WithVersion("1.2.3").
-		Execute(root)
-	Expect(err).NotTo(HaveOccurred())
+	// goModBOMBuildpack, err = buildpackStore.Get.
+	// 	WithVersion("1.2.3").
+	// 	Execute(root)
+	// Expect(err).NotTo(HaveOccurred())
 
-	offlineNodeModuleBOMBuildpack, err = buildpackStore.Get.
+	offlineGoModBOMBuildpack, err = buildpackStore.Get.
 		WithOfflineDependencies().
 		WithVersion("1.2.3").
 		Execute(root)
 	Expect(err).NotTo(HaveOccurred())
 
-	nodeEngineBuildpack, err = buildpackStore.Get.
-		Execute(integrationjson.NodeEngine)
+	goDistBuildpack, err = buildpackStore.Get.
+		Execute(integrationjson.GoDist)
 	Expect(err).NotTo(HaveOccurred())
 
-	offlineNodeEngineBuildpack, err = buildpackStore.Get.
+	offlineGoDistBuildpack, err = buildpackStore.Get.
 		WithOfflineDependencies().
-		Execute(integrationjson.NodeEngine)
+		Execute(integrationjson.GoDist)
 	Expect(err).NotTo(HaveOccurred())
 
-	nodeStartBuildpack, err = buildpackStore.Get.
-		Execute(integrationjson.NodeStart)
-	Expect(err).NotTo(HaveOccurred())
-
-	npmInstallBuildpack, err = buildpackStore.Get.
-		Execute(integrationjson.NPMInstall)
-	Expect(err).NotTo(HaveOccurred())
-
-	npmStartBuildpack, err = buildpackStore.Get.
-		Execute(integrationjson.NPMStart)
-	Expect(err).NotTo(HaveOccurred())
-
-	yarnBuildpack, err = buildpackStore.Get.
-		Execute(integrationjson.Yarn)
-	Expect(err).NotTo(HaveOccurred())
-
-	yarnInstallBuildpack, err = buildpackStore.Get.
-		Execute(integrationjson.YarnInstall)
-	Expect(err).NotTo(HaveOccurred())
-
-	yarnStartBuildpack, err = buildpackStore.Get.
-		Execute(integrationjson.YarnStart)
+	goBuildBuildpack, err = buildpackStore.Get.
+		Execute(integrationjson.GoBuild)
 	Expect(err).NotTo(HaveOccurred())
 
 	SetDefaultEventuallyTimeout(5 * time.Second)
 
 	suite := spec.New("Integration", spec.Report(report.Terminal{}), spec.Parallel())
-	suite("NPM", testNPM)
-	suite("Offline", testOffline)
-	suite("PackageLockHashes", testPackageLockHashes)
-	suite("Vendored", testVendored)
-	suite("Yarn", testYarn)
+	suite("GoMod", testGoMod)
+	// suite("Offline", testOffline)
+	// suite("PackageLockHashes", testPackageLockHashes)
+	// suite("Vendored", testVendored)
 	suite.Run(t)
 }

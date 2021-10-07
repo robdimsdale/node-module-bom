@@ -1,12 +1,14 @@
-package nodemodulebom_test
+package gomodbom_test
 
 import (
+	"errors"
+	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
 
-	"os"
-
-	nodemodulebom "github.com/paketo-buildpacks/node-module-bom"
+	gomodbom "github.com/paketo-buildpacks/go-mod-bom"
+	"github.com/paketo-buildpacks/go-mod-bom/fakes"
 	"github.com/paketo-buildpacks/packit"
 	"github.com/sclevine/spec"
 
@@ -15,9 +17,11 @@ import (
 
 func testDetect(t *testing.T, context spec.G, it spec.S) {
 	var (
-		Expect     = NewWithT(t).Expect
-		detect     packit.DetectFunc
-		workingDir string
+		Expect = NewWithT(t).Expect
+
+		workingDir  string
+		goModParser *fakes.VersionParser
+		detect      packit.DetectFunc
 	)
 
 	it.Before(func() {
@@ -25,14 +29,16 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		workingDir, err = os.MkdirTemp("", "working-dir")
 		Expect(err).NotTo(HaveOccurred())
 
-		detect = nodemodulebom.Detect()
+		goModParser = &fakes.VersionParser{}
+
+		detect = gomodbom.Detect(goModParser)
 	})
 
 	it.After(func() {
 		Expect(os.RemoveAll(workingDir)).To(Succeed())
 	})
 
-	it("returns a plan that provides nothing and requires node and node_modules", func() {
+	it("returns a plan that provides nothing and requires go-dist", func() {
 		result, err := detect(packit.DetectContext{
 			WorkingDir: workingDir,
 		})
@@ -40,27 +46,38 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		Expect(result.Plan).To(Equal(packit.BuildPlan{
 			Requires: []packit.BuildPlanRequirement{
 				{
-					Name: "node",
-					Metadata: map[string]interface{}{
-						"build": true,
-					},
-				},
-				{
-					Name: "node_modules",
-					Metadata: map[string]interface{}{
-						"build": true,
+					Name: "go",
+					Metadata: gomodbom.BuildPlanMetadata{
+						VersionSource: "go.mod",
+						// TODO: add go version in here
+						Version: "",
+						Build:   true,
 					},
 				},
 			},
 		}))
 	})
 
-	context("the app contains vendored node_modules", func() {
+	context("go.mod does not exist in the working directory", func() {
 		it.Before(func() {
-			Expect(os.Mkdir(filepath.Join(workingDir, "node_modules"), os.ModePerm)).To(Succeed())
+			_, err := os.Stat("/no/such/go.mod")
+			goModParser.ParseVersionCall.Returns.Err = fmt.Errorf("failed to parse go.mod: %w", err)
 		})
 
-		it("returns a plan that provides nothing and only requires node", func() {
+		it("fails detection", func() {
+			_, err := detect(packit.DetectContext{
+				WorkingDir: workingDir,
+			})
+			Expect(err).To(MatchError(packit.Fail.WithMessage("go.mod file is not present")))
+		})
+	})
+
+	context("when there is a vendor directory in the working directory", func() {
+		it.Before(func() {
+			Expect(os.MkdirAll(filepath.Join(workingDir, "vendor"), os.ModePerm)).To(Succeed())
+		})
+
+		it("detects", func() {
 			result, err := detect(packit.DetectContext{
 				WorkingDir: workingDir,
 			})
@@ -68,9 +85,12 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 			Expect(result.Plan).To(Equal(packit.BuildPlan{
 				Requires: []packit.BuildPlanRequirement{
 					{
-						Name: "node",
-						Metadata: map[string]interface{}{
-							"build": true,
+						Name: "go",
+						Metadata: gomodbom.BuildPlanMetadata{
+							VersionSource: "go.mod",
+							// TODO: Add go version here
+							Version: "",
+							Build:   true,
 						},
 					},
 				},
@@ -79,22 +99,71 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	context("failure cases", func() {
-		context("node_modules directory exists but cannot be stat", func() {
+		context("the go.mod file cannot be read", func() {
 			it.Before(func() {
-				Expect(os.Chmod(workingDir, 0000)).To(Succeed())
-			})
-
-			it.After(func() {
-				Expect(os.Chmod(workingDir, os.ModePerm)).To(Succeed())
+				goModParser.ParseVersionCall.Returns.Err = errors.New("failed to read go.mod file")
 			})
 
 			it("returns an error", func() {
 				_, err := detect(packit.DetectContext{
 					WorkingDir: workingDir,
 				})
-				Expect(err).To(MatchError(ContainSubstring("permission denied")))
+				Expect(err).To(MatchError("failed to read go.mod file"))
 			})
 		})
 	})
 
+	context("go.mod does not exist in the working directory", func() {
+		it.Before(func() {
+			_, err := os.Stat("/no/such/go.mod")
+			goModParser.ParseVersionCall.Returns.Err = fmt.Errorf("failed to parse go.mod: %w", err)
+		})
+
+		it("fails detection", func() {
+			_, err := detect(packit.DetectContext{
+				WorkingDir: workingDir,
+			})
+			Expect(err).To(MatchError(packit.Fail.WithMessage("go.mod file is not present")))
+		})
+	})
+
+	// context("when there is a vendor directory in the working directory", func() {
+	// 	it.Before(func() {
+	// 		Expect(os.MkdirAll(filepath.Join(workingDir, "vendor"), os.ModePerm)).To(Succeed())
+	// 	})
+
+	// 	it("detects", func() {
+	// 		result, err := detect(packit.DetectContext{
+	// 			WorkingDir: workingDir,
+	// 		})
+	// 		Expect(err).NotTo(HaveOccurred())
+	// 		Expect(result.Plan).To(Equal(packit.BuildPlan{
+	// 			Requires: []packit.BuildPlanRequirement{
+	// 				{
+	// 					Name: "go",
+	// 					Metadata: gomodvendor.BuildPlanMetadata{
+	// 						VersionSource: "go.mod",
+	// 						Version:       ">= 1.15",
+	// 						Build:         true,
+	// 					},
+	// 				},
+	// 			},
+	// 		}))
+	// 	})
+	// })
+
+	context("failure cases", func() {
+		context("the go.mod file cannot be read", func() {
+			it.Before(func() {
+				goModParser.ParseVersionCall.Returns.Err = errors.New("failed to read go.mod file")
+			})
+
+			it("returns an error", func() {
+				_, err := detect(packit.DetectContext{
+					WorkingDir: workingDir,
+				})
+				Expect(err).To(MatchError("failed to read go.mod file"))
+			})
+		})
+	})
 }

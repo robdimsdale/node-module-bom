@@ -1,4 +1,4 @@
-package nodemodulebom_test
+package gomodbom_test
 
 import (
 	"testing"
@@ -7,8 +7,8 @@ import (
 	"github.com/sclevine/spec/report"
 )
 
-func TestUnitNodeModuleBOM(t *testing.T) {
-	suite := spec.New("node-module-bom", spec.Report(report.Terminal{}))
+func TestUnitGoModBOM(t *testing.T) {
+	suite := spec.New("go-mod-bom", spec.Report(report.Terminal{}))
 	suite("Build", testBuild)
 	suite("Detect", testDetect)
 	suite("ModuleBOM", testModuleBOM)

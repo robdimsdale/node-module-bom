@@ -1,4 +1,4 @@
-package nodemodulebom
+package gomodbom
 
 import (
 	"errors"
@@ -8,35 +8,40 @@ import (
 	"github.com/paketo-buildpacks/packit"
 )
 
-func Detect() packit.DetectFunc {
+//go:generate faux --interface VersionParser --output fakes/version_parser.go
+type VersionParser interface {
+	ParseVersion(path string) (version string, err error)
+}
+
+type BuildPlanMetadata struct {
+	VersionSource string `toml:"version-source"`
+	Version       string `toml:"version"`
+	Build         bool   `toml:"build"`
+}
+
+func Detect(goModParser VersionParser) packit.DetectFunc {
 	return func(context packit.DetectContext) (packit.DetectResult, error) {
-		plan := packit.BuildPlan{
-			Requires: []packit.BuildPlanRequirement{
-				{
-					Name: "node",
-					Metadata: map[string]interface{}{
-						"build": true,
+		version, err := goModParser.ParseVersion(filepath.Join(context.WorkingDir, GoModLocation))
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return packit.DetectResult{}, packit.Fail.WithMessage("go.mod file is not present")
+			}
+			return packit.DetectResult{}, err
+		}
+
+		return packit.DetectResult{
+			Plan: packit.BuildPlan{
+				Requires: []packit.BuildPlanRequirement{
+					{
+						Name: GoLayerName,
+						Metadata: BuildPlanMetadata{
+							VersionSource: GoModLocation,
+							Build:         true,
+							Version:       version,
+						},
 					},
 				},
 			},
-		}
-
-		_, err := os.Stat(filepath.Join(context.WorkingDir, "node_modules"))
-		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				nodeModulesRequirement := packit.BuildPlanRequirement{
-					Name: "node_modules",
-					Metadata: map[string]interface{}{
-						"build": true,
-					},
-				}
-
-				plan.Requires = append(plan.Requires, nodeModulesRequirement)
-			} else {
-				return packit.DetectResult{}, err
-			}
-		}
-
-		return packit.DetectResult{Plan: plan}, nil
+		}, nil
 	}
 }

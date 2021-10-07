@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	nodemodulebom "github.com/paketo-buildpacks/node-module-bom"
+	gomodbom "github.com/paketo-buildpacks/go-mod-bom"
 	"github.com/paketo-buildpacks/packit"
 	"github.com/paketo-buildpacks/packit/cargo"
 	"github.com/paketo-buildpacks/packit/chronos"
@@ -13,12 +13,13 @@ import (
 )
 
 func main() {
+	goModParser := gomodbom.NewGoModParser()
 
 	packit.Run(
-		nodemodulebom.Detect(),
-		nodemodulebom.Build(
+		gomodbom.Detect(goModParser),
+		gomodbom.Build(
 			postal.NewService(cargo.NewTransport()),
-			nodemodulebom.NewModuleBOM(pexec.NewExecutable("cyclonedx-bom"), scribe.NewEmitter(os.Stdout)),
+			gomodbom.NewModuleBOM(pexec.NewExecutable("cyclonedx-gomod"), scribe.NewEmitter(os.Stdout)),
 			chronos.DefaultClock,
 			scribe.NewEmitter(os.Stdout),
 		),
