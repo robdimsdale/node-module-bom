@@ -58,6 +58,7 @@ func (m ModuleBOM) Generate(workingDir string) ([]packit.BOMEntry, error) {
 	}
 	defer file.Close()
 
+	// TODO: figure out why the licenses field isn't present. Probably needs 'evidences'.
 	var bom struct {
 		Components []struct {
 			Name    string `json:"name"`
