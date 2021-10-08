@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/paketo-buildpacks/occam"
+	"github.com/paketo-buildpacks/packit/fs"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -58,6 +59,9 @@ func testGoMod(t *testing.T, context spec.G, it spec.S) {
 				source, err = occam.Source(filepath.Join("testdata", "simple-golang-uuid"))
 				Expect(err).ToNot(HaveOccurred())
 
+				err = replaceGitFileWithSubmoduleDir(source)
+				Expect(err).ToNot(HaveOccurred())
+
 				var logs fmt.Stringer
 				image, logs, err = pack.WithNoColor().Build.
 					WithPullPolicy("never").
@@ -81,4 +85,17 @@ func testGoMod(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 	})
+}
+
+func replaceGitFileWithSubmoduleDir(source string) error {
+	gitfile := filepath.Join(source, ".git")
+
+	err := os.Remove(gitfile)
+	if err != nil {
+		return err
+	}
+
+	gitSubmoduleDir := filepath.Join(".", "../.git/modules/integration/testdata/simple-golang-uuid")
+
+	return fs.Copy(gitSubmoduleDir, gitfile)
 }
