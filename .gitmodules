@@ -1,3 +1,6 @@
 [submodule "integration/testdata/simple-golang-uuid"]
 	path = integration/testdata/simple-golang-uuid
 	url = https://github.com/robdimsdale/simple-golang-uuid
+[submodule "integration/testdata/multimain"]
+	path = integration/testdata/multimain
+	url = https://github.com/robdimsdale/multimain
