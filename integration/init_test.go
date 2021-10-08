@@ -87,6 +87,7 @@ func TestIntegration(t *testing.T) {
 
 	suite := spec.New("Integration", spec.Report(report.Terminal{}), spec.Parallel())
 	suite("GoMod", testGoMod)
+	suite("MultiMain", testMultipleMain)
 	// suite("Offline", testOffline)
 	// suite("PackageLockHashes", testPackageLockHashes)
 	// suite("Vendored", testVendored)

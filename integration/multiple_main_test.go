@@ -28,7 +28,7 @@ func testMultipleMain(t *testing.T, context spec.G, it spec.S) {
 		docker = occam.NewDocker()
 	})
 
-	context("when the buildpack is run with pack build", func() {
+	context.Focus("when the buildpack is run with pack build", func() {
 		var (
 			image     occam.Image
 			container occam.Container
@@ -53,18 +53,19 @@ func testMultipleMain(t *testing.T, context spec.G, it spec.S) {
 				Expect(docker.Container.Remove.Execute(container.ID)).To(Succeed())
 			})
 
-			it("builds, logs and runs one of the main entrypoints correctly", func() {
+			it("builds, logs and runs one of the main entrypoints correctly and generates the BOM for both targets", func() {
 				var err error
 
 				source, err = occam.Source(filepath.Join("testdata", "multimain"))
 				Expect(err).ToNot(HaveOccurred())
 
-				err = replaceGitFileWithSubmoduleDir(source)
+				err = replaceMultimainGitFileWithSubmoduleDir(source)
 				Expect(err).ToNot(HaveOccurred())
 
 				var logs fmt.Stringer
 				image, logs, err = pack.WithNoColor().Build.
 					WithPullPolicy("never").
+					WithEnv(map[string]string{"BP_GO_TARGETS": "cmd/hellouuid:cmd/helloyaml"}).
 					WithBuildpacks(
 						goDistBuildpack,
 						offlineGoModBOMBuildpack, // TODO: Use online buildpack here once we resolve the packaging issue of cyclonedx-gomod (it needs to have a bin directory)
@@ -84,14 +85,13 @@ func testMultipleMain(t *testing.T, context spec.G, it spec.S) {
 				Expect(image.Labels["io.buildpacks.build.metadata"]).To(ContainSubstring(`"name":"github.com/robdimsdale/multimain"`))
 				Expect(image.Labels["io.buildpacks.build.metadata"]).To(ContainSubstring(`"name":"github.com/robdimsdale/uuid"`))
 				Expect(image.Labels["io.buildpacks.build.metadata"]).To(ContainSubstring(`"name":"github.com/google/uuid"`))
-
-				Expect(image.Labels["io.buildpacks.build.metadata"]).NotTo(ContainSubstring(`"name":"gopkg.in/yaml.v2"`))
+				Expect(image.Labels["io.buildpacks.build.metadata"]).To(ContainSubstring(`"name":"gopkg.in/yaml.v2"`))
 			})
 		})
 	})
 }
 
-func replaceGitFileWithSubmoduleDir(source string) error {
+func replaceMultimainGitFileWithSubmoduleDir(source string) error {
 	gitfile := filepath.Join(source, ".git")
 
 	err := os.Remove(gitfile)
@@ -99,7 +99,7 @@ func replaceGitFileWithSubmoduleDir(source string) error {
 		return err
 	}
 
-	gitSubmoduleDir := filepath.Join(".", "../.git/modules/integration/testdata/simple-golang-uuid")
+	gitSubmoduleDir := filepath.Join(".", "../.git/modules/integration/testdata/multimain")
 
 	return fs.Copy(gitSubmoduleDir, gitfile)
 }

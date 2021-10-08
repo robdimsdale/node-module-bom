@@ -30,13 +30,14 @@ func NewModuleBOM(executable Executable, logger scribe.Emitter) ModuleBOM {
 	}
 }
 
-func (m ModuleBOM) Generate(workingDir string) ([]packit.BOMEntry, error) {
+func (m ModuleBOM) Generate(workingDir, target string) ([]packit.BOMEntry, error) {
 	buffer := bytes.NewBuffer(nil)
 	args := []string{
 		"app",
 		"-json",
 		"-files",
 		"-licenses",
+		"-main", target,
 		"-output", "bom.json",
 	}
 	m.logger.Subprocess("Running 'cyclonedx-gomod %s'", strings.Join(args, " "))

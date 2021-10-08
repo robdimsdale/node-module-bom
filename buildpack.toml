@@ -24,7 +24,7 @@ api = "0.5"
 #    uri = "file:///users/rdimsdale/Downloads/cyclonedx-gomod_1.0.0_linux_amd64.tar.gz"
 #    sha256 = "9df5a4b9e290e364e78c43ea632034c1088f33a0afb0d6a96dc8e1d5d78171da"
 
-    uri = "file:///users/rdimsdale/Downloads/cyclonedx-gomod_1.0.0_linux_amd64-repackage.tar.gz"
+    uri = "file:///users/bhenao/Downloads/cyclonedx-gomod_1.0.0_linux_amd64-repackage.tar.gz"
     sha256 = "7b96b57e678fa731f882627064cf9559590b033ba2155649450ae69c7f33688f"
     version = "1.0.0"
 

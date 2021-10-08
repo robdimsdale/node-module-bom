@@ -21,10 +21,10 @@ type DependencyManager interface {
 
 //go:generate faux --interface GoModBOM --output fakes/go_mod_bom.go
 type GoModBOM interface {
-	Generate(workingDir string) ([]packit.BOMEntry, error)
+	Generate(workingDir, target string) ([]packit.BOMEntry, error)
 }
 
-func Build(dependencyManager DependencyManager, goModBOM GoModBOM, clock chronos.Clock, logger scribe.Emitter) packit.BuildFunc {
+func Build(parser BuildConfigurationParser, dependencyManager DependencyManager, goModBOM GoModBOM, clock chronos.Clock, logger scribe.Emitter) packit.BuildFunc {
 	return func(context packit.BuildContext) (packit.BuildResult, error) {
 		logger.Title("%s %s", context.BuildpackInfo.Name, context.BuildpackInfo.Version)
 
@@ -41,6 +41,13 @@ func Build(dependencyManager DependencyManager, goModBOM GoModBOM, clock chronos
 		}
 		logger.Subprocess("Selected %s version: %s", dependency.Name, dependency.Version)
 		logger.Break()
+
+		configuration, err := parser.Parse(context.BuildpackInfo.Version, context.WorkingDir)
+		if err != nil {
+			return packit.BuildResult{}, err
+		}
+
+		logger.Process("*********************CONFIG******************** \n%v\n", configuration.Targets)
 
 		cycloneDXGoModLayer, err := context.Layers.Get("cyclonedx-gomod")
 		if err != nil {
@@ -84,17 +91,23 @@ func Build(dependencyManager DependencyManager, goModBOM GoModBOM, clock chronos
 
 		toolBOM := dependencyManager.GenerateBillOfMaterials(dependency)
 
-		logger.Process("Running %s", dependency.Name)
 		var moduleBOM []packit.BOMEntry
-		duration, err := clock.Measure(func() error {
-			moduleBOM, err = goModBOM.Generate(context.WorkingDir)
-			return err
-		})
-		if err != nil {
-			return packit.BuildResult{}, err
+		for _, target := range configuration.Targets {
+			logger.Process("Running %s", dependency.Name)
+
+			var currentModuleBOM []packit.BOMEntry
+			duration, err := clock.Measure(func() error {
+				currentModuleBOM, err = goModBOM.Generate(context.WorkingDir, target)
+				return err
+			})
+			if err != nil {
+				return packit.BuildResult{}, err
+			}
+
+			moduleBOM = append(moduleBOM, currentModuleBOM...)
+			logger.Action("Completed in %s", duration.Round(time.Millisecond))
 		}
 
-		logger.Action("Completed in %s", duration.Round(time.Millisecond))
 		logger.Break()
 
 		return packit.BuildResult{
