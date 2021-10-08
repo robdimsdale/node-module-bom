@@ -55,7 +55,7 @@ func testGoMod(t *testing.T, context spec.G, it spec.S) {
 			it("builds, logs and runs correctly", func() {
 				var err error
 
-				source, err = occam.Source(filepath.Join("testdata", "go_mod_app"))
+				source, err = occam.Source(filepath.Join("testdata", "simple-golang-uuid"))
 				Expect(err).ToNot(HaveOccurred())
 
 				var logs fmt.Stringer
