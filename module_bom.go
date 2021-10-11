@@ -30,6 +30,27 @@ func NewModuleBOM(executable Executable, logger scribe.Emitter) ModuleBOM {
 	}
 }
 
+type BOM struct {
+	Components []Component `json:"components"`
+}
+
+type Component struct {
+	Name    string `json:"name"`
+	PURL    string `json:"purl"`
+	Version string `json:"version"`
+	Hashes  []struct {
+		Algorithm string `json:"alg"`
+		Content   string `json:"content"`
+	} `json:"hashes"`
+	Evidence struct {
+		Licenses []struct {
+			License struct {
+				ID string `json:"id"`
+			} `json:"license"`
+		} `json:"licenses"`
+	} `json:"evidence"`
+}
+
 func (m ModuleBOM) Generate(workingDir, target string) ([]packit.BOMEntry, error) {
 	buffer := bytes.NewBuffer(nil)
 	args := []string{
@@ -59,23 +80,7 @@ func (m ModuleBOM) Generate(workingDir, target string) ([]packit.BOMEntry, error
 	}
 	defer file.Close()
 
-	// TODO: figure out why the licenses field isn't present. Probably needs 'evidences'.
-	var bom struct {
-		Components []struct {
-			Name    string `json:"name"`
-			PURL    string `json:"purl"`
-			Version string `json:"version"`
-			Hashes  []struct {
-				Algorithm string `json:"alg"`
-				Content   string `json:"content"`
-			} `json:"hashes"`
-			Licenses []struct {
-				License struct {
-					ID string `json:"id"`
-				} `json:"license"`
-			} `json:"licenses"`
-		} `json:"components"`
-	}
+	var bom BOM
 
 	err = json.NewDecoder(file).Decode(&bom)
 	if err != nil {
@@ -104,7 +109,7 @@ func (m ModuleBOM) Generate(workingDir, target string) ([]packit.BOMEntry, error
 		}
 
 		var licenses []string
-		for _, license := range entry.Licenses {
+		for _, license := range entry.Evidence.Licenses {
 			licenses = append(licenses, license.License.ID)
 		}
 		packitEntry.Metadata.Licenses = licenses

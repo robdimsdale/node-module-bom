@@ -2,13 +2,12 @@ package integration
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-	"testing"
-
 	"github.com/paketo-buildpacks/occam"
 	"github.com/paketo-buildpacks/packit/fs"
 	"github.com/sclevine/spec"
+	"os"
+	"path/filepath"
+	"testing"
 
 	. "github.com/onsi/gomega"
 	. "github.com/paketo-buildpacks/occam/matchers"
@@ -28,7 +27,7 @@ func testMultipleMain(t *testing.T, context spec.G, it spec.S) {
 		docker = occam.NewDocker()
 	})
 
-	context.Focus("when the buildpack is run with pack build", func() {
+	context("when the buildpack is run with pack build", func() {
 		var (
 			image     occam.Image
 			container occam.Container
@@ -82,10 +81,14 @@ func testMultipleMain(t *testing.T, context spec.G, it spec.S) {
 
 				Eventually(container).Should(BeAvailable())
 				Eventually(container).Should(Serve(ContainSubstring("Random UUID")).OnPort(8080))
-				Expect(image.Labels["io.buildpacks.build.metadata"]).To(ContainSubstring(`"name":"github.com/robdimsdale/multimain"`))
+				//Expect(image.Labels["io.buildpacks.build.metadata"]).To(ContainSubstring(`"name":"github.com/robdimsdale/multimain"`))
 				Expect(image.Labels["io.buildpacks.build.metadata"]).To(ContainSubstring(`"name":"github.com/robdimsdale/uuid"`))
 				Expect(image.Labels["io.buildpacks.build.metadata"]).To(ContainSubstring(`"name":"github.com/google/uuid"`))
 				Expect(image.Labels["io.buildpacks.build.metadata"]).To(ContainSubstring(`"name":"gopkg.in/yaml.v2"`))
+
+				Expect(image.Labels["io.buildpacks.build.metadata"]).To(ContainSubstring(`"licenses":["BSD-3-Clause"]`))
+				Expect(image.Labels["io.buildpacks.build.metadata"]).To(ContainSubstring(`"licenses":["MIT"]`))
+				Expect(image.Labels["io.buildpacks.build.metadata"]).To(ContainSubstring(`"licenses":["Apache-2.0"]`))
 			})
 		})
 	})

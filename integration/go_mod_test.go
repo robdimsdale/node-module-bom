@@ -83,6 +83,9 @@ func testGoMod(t *testing.T, context spec.G, it spec.S) {
 				Eventually(container).Should(Serve(ContainSubstring("Random UUID")).OnPort(8080))
 				Expect(image.Labels["io.buildpacks.build.metadata"]).To(ContainSubstring(`"name":"github.com/robdimsdale/uuid"`))
 				Expect(image.Labels["io.buildpacks.build.metadata"]).To(ContainSubstring(`"name":"github.com/google/uuid"`))
+
+				Expect(image.Labels["io.buildpacks.build.metadata"]).To(ContainSubstring(`"licenses":["BSD-3-Clause"]`))
+				Expect(image.Labels["io.buildpacks.build.metadata"]).To(ContainSubstring(`"licenses":["MIT"]`))
 			})
 		})
 	})
