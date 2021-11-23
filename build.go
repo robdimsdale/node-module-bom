@@ -32,13 +32,9 @@ func Build(dependencyManager DependencyManager, clock chronos.Clock, logger scri
 			return packit.BuildResult{}, err
 		}
 
-		layer.Launch = true
-
 		logger.Process("Generating SBOM for directory %s", context.WorkingDir)
 
-		var (
-			bom sbom.SBOM
-		)
+		var bom sbom.SBOM
 		duration, err := clock.Measure(func() error {
 			bom, err = sbom.Generate(context.WorkingDir)
 			return err
@@ -56,6 +52,7 @@ func Build(dependencyManager DependencyManager, clock chronos.Clock, logger scri
 		entries.AddFormat(sbom.SPDXFormat)
 
 		layer.SBOM = entries
+		layer.Launch = true
 
 		b, err := ioutil.ReadAll(entries.GetContent(sbom.CycloneDXFormat))
 		if err != nil {
