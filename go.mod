@@ -12,6 +12,6 @@ require (
 
 replace (
 	github.com/anchore/syft => github.com/jonasagx/syft v0.27.1-0.20211118073839-eee29112ef6a
-	// replace packit with implementation on sbom-generation branch
-	github.com/paketo-buildpacks/packit v1.3.1 => github.com/paketo-buildpacks/packit v1.3.2-0.20211120002843-31c702f09943
+	// replace packit with implementation on sbom-generation-fgj branch
+	github.com/paketo-buildpacks/packit v1.3.1 => github.com/paketo-buildpacks/packit v1.3.2-0.20211123222058-76ccd0fbb647
 )

@@ -1,6 +1,7 @@
 package nodemodulebom
 
 import (
+	"io/ioutil"
 	"time"
 
 	"github.com/paketo-buildpacks/packit"
@@ -21,23 +22,6 @@ func Build(dependencyManager DependencyManager, clock chronos.Clock, logger scri
 	return func(context packit.BuildContext) (packit.BuildResult, error) {
 		logger.Title("%s %s", context.BuildpackInfo.Name, context.BuildpackInfo.Version)
 
-		logger.Process("Generating SBOM for directory %s", context.WorkingDir)
-
-		var (
-			bom sbom.SBOM
-			err error
-		)
-		duration, err := clock.Measure(func() error {
-			bom, err = sbom.Generate(context.WorkingDir)
-			return err
-		})
-		if err != nil {
-			return packit.BuildResult{}, err
-		}
-
-		logger.Action("Completed in %s", duration.Round(time.Millisecond))
-		logger.Break()
-
 		layer, err := context.Layers.Get("node-module-bom")
 		if err != nil {
 			return packit.BuildResult{}, err
@@ -50,14 +34,35 @@ func Build(dependencyManager DependencyManager, clock chronos.Clock, logger scri
 
 		layer.Launch = true
 
-		layer.SBOM.Set("cdx.json", bom.Format(sbom.CycloneDXFormat))
-		layer.SBOM.Set("syft.json", bom.Format(sbom.SyftFormat))
-		layer.SBOM.Set("spdx.json", bom.Format(sbom.SPDXFormat))
+		logger.Process("Generating SBOM for directory %s", context.WorkingDir)
 
-		bomEntries := make(packit.SBOMEntries)
-		bomEntries.Set("cdx.json", bom.Format(sbom.CycloneDXFormat))
-		bomEntries.Set("syft.json", bom.Format(sbom.SyftFormat))
-		bomEntries.Set("spdx.json", bom.Format(sbom.SPDXFormat))
+		var (
+			bom sbom.SBOM
+		)
+		duration, err := clock.Measure(func() error {
+			bom, err = sbom.Generate(context.WorkingDir)
+			return err
+		})
+		if err != nil {
+			return packit.BuildResult{}, err
+		}
+
+		logger.Action("Completed in %s", duration.Round(time.Millisecond))
+		logger.Break()
+
+		entries := sbom.NewEntries(bom)
+		entries.AddFormat(sbom.CycloneDXFormat)
+		entries.AddFormat(sbom.SyftFormat)
+		entries.AddFormat(sbom.SPDXFormat)
+
+		layer.SBOM = entries
+
+		b, err := ioutil.ReadAll(entries.GetContent(sbom.CycloneDXFormat))
+		if err != nil {
+			panic(err)
+		}
+
+		logger.Detail("bom content:\n%s", string(b))
 
 		return packit.BuildResult{
 			Layers: []packit.Layer{
@@ -65,7 +70,7 @@ func Build(dependencyManager DependencyManager, clock chronos.Clock, logger scri
 			},
 			Build: packit.BuildMetadata{},
 			Launch: packit.LaunchMetadata{
-				SBOM: bomEntries,
+				SBOM: entries,
 			},
 		}, nil
 	}
